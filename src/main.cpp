@@ -11,33 +11,32 @@ Servo esc;
 
 typedef struct struct_message {
   int joy1_x;
-  int joy1_y;
-  int joy2_x;
+  int joy1_y; //active
+  int joy2_x; //active
   int joy2_y;
 } struct_message;
 
 struct_message receivedData;
+bool dataReceived = false;
+int packetLossCounter = 0;
 
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&receivedData, incomingData, sizeof(receivedData));
+  dataReceived = true;  // Packet received successfully
+  packetLossCounter = 0; // Reset the packet loss counter
 }
 
 int mapSteeringPosition(int joy_value) {
-  // Reversed steering, offset to the left, and increased range
-  int reversedValue = -joy_value;
-  int offsetValue = reversedValue - 30; // Adjust this value to fine-tune the left offset
-  return map(offsetValue, -255, 255, 30, 150); // Increased range and offset
+  int offsetValue = joy_value - 0; // Adjust this value to fine-tune the left offset
+  return map(offsetValue, -255, 255, 0, 180); // Increased range and offset
 }
 
 int mapThrottlePosition(int joy_value) {
   if (joy_value < -40) {
-    // Map reverse throttle, full reverse at joy_value = -300, neutral at joy_value = -40
     return map(joy_value, -300, -40, 0, 90); // Reverse throttle
   } else if (joy_value > 40) {
-    // Map forward throttle, neutral at joy_value = 40, full forward at joy_value = 205
     return map(joy_value, 40, 205, 90, 180); // Forward throttle
   } else {
-    // Within -40 to 40 range, the throttle should stay at neutral
     return 90; // Neutral throttle
   }
 }
@@ -57,21 +56,33 @@ void setup() {
 }
 
 void loop() {
-  int steeringPosition = mapSteeringPosition(receivedData.joy1_x);
-  int throttlePosition = mapThrottlePosition(receivedData.joy2_y);
+  if (!dataReceived) {
+    packetLossCounter++;
+    if (packetLossCounter >= 10) {
+      // Stop the car by setting throttle to neutral
+      esc.write(90);
+      Serial.println("No data received for 10 cycles. Stopping the car.");
+      packetLossCounter = 0; // Reset the counter to prevent repeated stops
+    }
+  } else {
+    int steeringPosition = mapSteeringPosition(receivedData.joy2_x);
+    int throttlePosition = mapThrottlePosition(-receivedData.joy1_y);
 
-  steeringServo.write(steeringPosition);
-  esc.write(throttlePosition);
+    steeringServo.write(steeringPosition);
+    esc.write(throttlePosition);
 
-  Serial.print("Steering: ");
-  Serial.print(receivedData.joy1_x);
-  Serial.print(" -> ");
-  Serial.println(steeringPosition);
+    Serial.print("Steering: ");
+    Serial.print(receivedData.joy2_x);
+    Serial.print(" -> ");
+    Serial.println(steeringPosition);
 
-  Serial.print("Throttle: ");
-  Serial.print(receivedData.joy2_y);
-  Serial.print(" -> ");
-  Serial.println(throttlePosition);
+    Serial.print("Throttle: ");
+    Serial.print(receivedData.joy1_y);
+    Serial.print(" -> ");
+    Serial.println(throttlePosition);
 
-  delay(20);
+    dataReceived = false; // Reset the flag for the next cycle
+  }
+
+  delay(10);
 }
