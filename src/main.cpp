@@ -27,15 +27,15 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 }
 
 int mapSteeringPosition(int joy_value) {
-  int offsetValue = joy_value - 0; // Adjust this value to fine-tune the left offset
-  return map(offsetValue, -255, 255, 0, 180); // Increased range and offset
+  int offsetValue = joy_value - 30; // Adjust this value to fine-tune the left offset
+  return map(offsetValue, -255, 255, 20, 160); // Increased range and offset
 }
 
 int mapThrottlePosition(int joy_value) {
-  if (joy_value < -40) {
-    return map(joy_value, -300, -40, 0, 90); // Reverse throttle
-  } else if (joy_value > 40) {
-    return map(joy_value, 40, 205, 90, 180); // Forward throttle
+  if (joy_value < -10) {
+    return map(joy_value, -250, -11, 0, 89); // Reverse throttle
+  } else if (joy_value > 0) {
+    return map(joy_value, 1, 270, 90, 180); // Forward throttle
   } else {
     return 90; // Neutral throttle
   }
@@ -58,14 +58,14 @@ void setup() {
 void loop() {
   if (!dataReceived) {
     packetLossCounter++;
-    if (packetLossCounter >= 10) {
+    if (packetLossCounter > 3) {
       // Stop the car by setting throttle to neutral
       esc.write(90);
-      Serial.println("No data received for 10 cycles. Stopping the car.");
+      Serial.println("No data received for 1+ cycles. Stopping the car.");
       packetLossCounter = 0; // Reset the counter to prevent repeated stops
     }
   } else {
-    int steeringPosition = mapSteeringPosition(receivedData.joy2_x);
+    int steeringPosition = mapSteeringPosition(-receivedData.joy2_x);
     int throttlePosition = mapThrottlePosition(-receivedData.joy1_y);
 
     steeringServo.write(steeringPosition);
