@@ -1,6 +1,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <ESP32Servo.h>
+#include <cmath>
 
 // Define pins
 #define STEERING_SERVO_PIN 18
@@ -27,8 +28,8 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 }
 
 int mapSteeringPosition(int joy_value) {
-  int offsetValue = joy_value - 30; // Adjust this value to fine-tune the left offset
-  return map(offsetValue, -255, 255, 20, 160); // Increased range and offset
+  int offsetValue = joy_value - 50; // Adjust this value to fine-tune the left offset
+  return map(offsetValue, -255, 255, 40, 140); // Increased range and offset
 }
 
 int mapThrottlePosition(int joy_value) {
@@ -66,7 +67,7 @@ void loop() {
     }
   } else {
     int steeringPosition = mapSteeringPosition(-receivedData.joy2_x);
-    int throttlePosition = mapThrottlePosition(-receivedData.joy1_y);
+    int throttlePosition = mapThrottlePosition(receivedData.joy1_y);
 
     steeringServo.write(steeringPosition);
     esc.write(throttlePosition);
