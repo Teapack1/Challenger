@@ -67,7 +67,7 @@ void loop() {
     }
   } else {
     int steeringPosition = mapSteeringPosition(-receivedData.joy2_x);
-    int throttlePosition = mapThrottlePosition(receivedData.joy1_y);
+    int throttlePosition = mapThrottlePosition(-receivedData.joy1_y);
 
     steeringServo.write(steeringPosition);
     esc.write(throttlePosition);
@@ -85,5 +85,5 @@ void loop() {
     dataReceived = false; // Reset the flag for the next cycle
   }
 
-  delay(10);
+  delay(1);
 }
